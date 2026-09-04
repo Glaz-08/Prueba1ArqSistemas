@@ -19,9 +19,15 @@ frontend/    Aplicación web en React + TypeScript
 
 ## Cómo ejecutar
 
-Se necesitan dos terminales: una para el backend y otra para el frontend.
+### Backend con Docker (recomendado)
 
-### Backend (puerto 8000)
+```bash
+docker compose up --build backend
+```
+
+La API queda en [http://localhost:8000](http://localhost:8000) y la documentación en [http://localhost:8000/docs](http://localhost:8000/docs).
+
+### Backend en local (sin Docker)
 
 ```bash
 cd backend
@@ -31,8 +37,6 @@ pip install -r requirements.txt
 copy .env.example .env
 uvicorn app.main:app --reload
 ```
-
-Documentación interactiva de la API: [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ### Frontend (puerto 5173)
 
@@ -44,6 +48,23 @@ npm run dev
 
 La aplicación queda en [http://localhost:5173](http://localhost:5173) y se comunica con la API a través de `/api`.
 
+## Tests y cobertura
+
+El backend exige un mínimo de **60%** de cobertura. Desde `backend/`:
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
+## Integración continua
+
+El pipeline de GitHub Actions está en `.github/workflows/ci.yml`. En cada push y pull request ejecuta:
+
+- tests del backend con cobertura mínima del 60%
+- construcción y smoke test de la imagen Docker del backend
+- build del frontend
+
 ## Alcance actual
 
-Este commit deja el backend, el frontend y la API REST en funcionamiento como base del proyecto. Las funcionalidades del MVP (registro de revisiones, consulta, documento imprimible y estadísticas) se implementarán en siguientes iteraciones.
+Esta base deja backend, frontend, API REST, Docker y CI operativos. Las funcionalidades del MVP (registro de revisiones, consulta, documento imprimible y estadísticas) se implementarán en siguientes iteraciones.

@@ -1,0 +1,13 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      APP_NAME: Registro de Revisiones
+      APP_ENV: development
+      API_PREFIX: /api
+      FRONTEND_ORIGIN: http://localhost:5173
+    restart: unless-stopped

@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend-tests:
+    name: Backend tests y cobertura
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Instalar dependencias
+        run: pip install -r requirements-dev.txt
+
+      - name: Ejecutar tests con cobertura mínima 60%
+        run: pytest --cov-report=term-missing --cov-report=xml
+
+      - name: Publicar reporte de cobertura
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: backend/coverage.xml
+
+  backend-docker:
+    name: Imagen Docker del backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Construir imagen
+        run: docker build -t registro-revisiones-backend ./backend
+
+      - name: Levantar contenedor
+        run: docker run -d --name backend -p 8000:8000 registro-revisiones-backend
+
+      - name: Comprobar API
+        run: |
+          for i in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:8000/api/salud; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs backend
+          exit 1
+
+  frontend-build:
+    name: Build del frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Compilar
+        run: npm run build
