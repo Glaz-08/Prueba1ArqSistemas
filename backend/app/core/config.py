@@ -6,6 +6,8 @@ class Settings(BaseSettings):
     app_env: str = "development"
     api_prefix: str = "/api"
     frontend_origin: str = "http://localhost:5173"
+    database_url: str = "sqlite:///./data/app.db"
+    upload_dir: str = "uploads"
 
     model_config = SettingsConfigDict(
         env_file=".env",

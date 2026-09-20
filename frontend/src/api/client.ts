@@ -10,13 +10,3 @@ export type HealthResponse = {
   environment: string;
   stack: StackInfo;
 };
-
-export async function getSalud(): Promise<HealthResponse> {
-  const response = await fetch("/api/salud");
-
-  if (!response.ok) {
-    throw new Error("No fue posible conectar con la API");
-  }
-
-  return response.json();
-}

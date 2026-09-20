@@ -1,8 +1,21 @@
+from contextlib import asynccontextmanager
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import api_router
 from app.core.config import settings
+from app.core.database import Base, engine
+from app.models import registro as _registro_models  # noqa: F401
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    Path(settings.upload_dir).mkdir(parents=True, exist_ok=True)
+    Base.metadata.create_all(bind=engine)
+    yield
+
 
 app = FastAPI(
     title=settings.app_name,
@@ -13,6 +26,7 @@ app = FastAPI(
     version="0.1.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
 app.add_middleware(

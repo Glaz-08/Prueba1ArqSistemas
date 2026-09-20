@@ -36,5 +36,7 @@ dist-ssr/
 Thumbs.db
 desktop.ini
 
-# Uploads (evidencia fotográfica futura)
+# Uploads y base local
 backend/uploads/
+backend/data/
+*.db
