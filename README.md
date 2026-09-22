@@ -10,6 +10,13 @@ Sistema web para la gestión de registros de revisión de pertenencias en establ
 | Frontend | React + TypeScript (Vite) |
 | API | REST |
 
+## Funcionalidades
+
+- **Registro de revisión**: formulario guiado (estudiante, funcionarios presentes, motivo, elementos encontrados, horario, evidencia fotográfica opcional).
+- **Documento imprimible**: copia del procedimiento para estudiante y apoderado, para ver, imprimir o descargar.
+- **Consulta**: búsqueda de registros por estudiante (nombre o RUT), curso, motivo y rango de fechas (`GET /api/registros`).
+- **Estadísticas**: totales y desglose de revisiones por mes, motivo y curso (`GET /api/estadisticas`).
+
 ## Estructura del repositorio
 
 ```
@@ -48,6 +55,17 @@ npm run dev
 
 La aplicación queda en [http://localhost:5173](http://localhost:5173) y se comunica con la API a través de `/api`.
 
+## Datos de ejemplo
+
+Para probar Consulta y Estadísticas con datos de prueba, con el backend corriendo:
+
+```bash
+cd backend
+.venv\Scripts\python.exe scripts\seed.py
+```
+
+Crea 30 registros de ejemplo con fechas, motivos y cursos variados. Se puede correr varias veces (no revisa duplicados).
+
 ## Tests y cobertura
 
 El backend exige un mínimo de **60%** de cobertura. Desde `backend/`:
@@ -67,4 +85,4 @@ El pipeline de GitHub Actions está en `.github/workflows/ci.yml`. En cada push 
 
 ## Alcance actual
 
-Esta base deja backend, frontend, API REST, Docker y CI operativos. Las funcionalidades del MVP (registro de revisiones, consulta, documento imprimible y estadísticas) se implementarán en siguientes iteraciones.
+Backend, frontend, API REST, Docker, CI y las cuatro funcionalidades del MVP (registro de revisiones, documento imprimible, consulta y estadísticas) están operativas.
