@@ -170,11 +170,13 @@ label {
 }
 
 input,
-textarea {
+textarea,
+select {
   font: inherit;
   padding: 0.5rem 0.65rem;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
+  background: #fff;
 }
 
 .form-grid {
@@ -229,6 +231,72 @@ textarea {
   border-bottom: 1px solid #e2e8f0;
   text-align: left;
   padding: 0.5rem 0.4rem;
+}
+
+.seccion-titulo {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+.stat-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  margin-bottom: 1rem;
+}
+
+.stat-tile {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.stat-valor {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #1d4ed8;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-etiqueta {
+  color: #475569;
+  font-size: 0.85rem;
+}
+
+.desglose {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.desglose-fila {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.25rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.barra-fondo {
+  background: #e2e8f0;
+  border-radius: 999px;
+  height: 8px;
+  overflow: hidden;
+}
+
+.barra {
+  background: #1d4ed8;
+  height: 100%;
+  border-radius: 999px;
 }
 
 .evidencias {

@@ -12,6 +12,8 @@ export default function Layout() {
             Inicio
           </NavLink>
           <NavLink to="/registros/nueva">Nueva revisión</NavLink>
+          <NavLink to="/consulta">Consulta</NavLink>
+          <NavLink to="/estadisticas">Estadísticas</NavLink>
         </nav>
       </header>
       <Outlet />

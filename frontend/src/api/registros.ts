@@ -1,5 +1,11 @@
 import type { HealthResponse } from "./client";
-import type { Registro, RegistroCreate, RegistroResumen } from "../types";
+import type {
+  Estadisticas,
+  FiltrosConsulta,
+  Registro,
+  RegistroCreate,
+  RegistroResumen,
+} from "../types";
 
 export type { HealthResponse } from "./client";
 
@@ -22,8 +28,26 @@ export async function getSalud(): Promise<HealthResponse> {
   return response.json();
 }
 
-export async function listarRegistros(): Promise<{ items: RegistroResumen[]; total: number }> {
-  const response = await fetch("/api/registros");
+export async function listarRegistros(
+  filtros: FiltrosConsulta = {},
+): Promise<{ items: RegistroResumen[]; total: number }> {
+  const params = new URLSearchParams();
+  if (filtros.estudiante) params.set("estudiante", filtros.estudiante);
+  if (filtros.curso) params.set("curso", filtros.curso);
+  if (filtros.motivo) params.set("motivo", filtros.motivo);
+  if (filtros.fechaDesde) params.set("fecha_desde", filtros.fechaDesde);
+  if (filtros.fechaHasta) params.set("fecha_hasta", filtros.fechaHasta);
+  const query = params.toString();
+
+  const response = await fetch(`/api/registros${query ? `?${query}` : ""}`);
+  if (!response.ok) {
+    throw new Error(await parseError(response));
+  }
+  return response.json();
+}
+
+export async function obtenerEstadisticas(): Promise<Estadisticas> {
+  const response = await fetch("/api/estadisticas");
   if (!response.ok) {
     throw new Error(await parseError(response));
   }

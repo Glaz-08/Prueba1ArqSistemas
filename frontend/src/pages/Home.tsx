@@ -49,7 +49,10 @@ export default function Home() {
       </section>
 
       <section className="card">
-        <h2>Registros recientes</h2>
+        <div className="seccion-titulo">
+          <h2>Registros recientes</h2>
+          <Link to="/consulta">Ver todos →</Link>
+        </div>
         {registros.length === 0 ? (
           <p>Aún no hay revisiones. El listado con filtros lo completará el equipo de consulta.</p>
         ) : (
