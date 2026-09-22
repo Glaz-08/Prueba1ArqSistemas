@@ -55,3 +55,23 @@ export type RegistroCreate = {
   hora_inicio: string;
   hora_termino: string;
 };
+
+export type FiltrosConsulta = {
+  estudiante?: string;
+  curso?: string;
+  motivo?: string;
+  fechaDesde?: string;
+  fechaHasta?: string;
+};
+
+export type ConteoItem = {
+  nombre: string;
+  cantidad: number;
+};
+
+export type Estadisticas = {
+  total: number;
+  por_mes: ConteoItem[];
+  por_motivo: ConteoItem[];
+  por_curso: ConteoItem[];
+};

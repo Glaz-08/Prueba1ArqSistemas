@@ -1,8 +1,10 @@
+from datetime import date
 from pathlib import Path
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import HTMLResponse
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session, selectinload
 from starlette.responses import FileResponse
 
@@ -45,6 +47,11 @@ def _cargar_registro(db: Session, registro_id: str) -> RegistroRevision:
     return registro
 
 
+def _patron_busqueda(valor: str) -> str:
+    escapado = valor.translate({ord("\\"): "\\\\", ord("%"): "\\%", ord("_"): "\\_"})
+    return f"%{escapado}%"
+
+
 def _to_out(registro: RegistroRevision) -> RegistroOut:
     return RegistroOut(
         id=registro.id,
@@ -65,12 +72,44 @@ def _to_out(registro: RegistroRevision) -> RegistroOut:
 
 
 @router.get("", response_model=RegistroListado)
-def listar_registros(db: Session = Depends(get_db)) -> RegistroListado:
-    registros = (
-        db.query(RegistroRevision)
-        .order_by(RegistroRevision.created_at.desc())
-        .all()
-    )
+def listar_registros(
+    estudiante: str | None = Query(default=None, description="Nombre o RUT del estudiante"),
+    curso: str | None = Query(default=None, description="Curso del estudiante"),
+    motivo: str | None = Query(default=None, description="Texto contenido en el motivo"),
+    fecha_desde: date | None = Query(default=None),
+    fecha_hasta: date | None = Query(default=None),
+    db: Session = Depends(get_db),
+) -> RegistroListado:
+    query = db.query(RegistroRevision)
+
+    estudiante = estudiante.strip() if estudiante else None
+    curso = curso.strip() if curso else None
+    motivo = motivo.strip() if motivo else None
+
+    condiciones = []
+    if estudiante:
+        patron = _patron_busqueda(estudiante)
+        condiciones.append(
+            or_(
+                RegistroRevision.estudiante_nombre.ilike(patron, escape="\\"),
+                RegistroRevision.estudiante_rut.ilike(patron, escape="\\"),
+            )
+        )
+    if curso:
+        condiciones.append(
+            RegistroRevision.estudiante_curso.ilike(_patron_busqueda(curso), escape="\\")
+        )
+    if motivo:
+        condiciones.append(RegistroRevision.motivo.ilike(_patron_busqueda(motivo), escape="\\"))
+    if fecha_desde:
+        condiciones.append(RegistroRevision.fecha >= fecha_desde)
+    if fecha_hasta:
+        condiciones.append(RegistroRevision.fecha <= fecha_hasta)
+
+    if condiciones:
+        query = query.filter(and_(*condiciones))
+
+    registros = query.order_by(RegistroRevision.created_at.desc()).all()
     items = [
         RegistroResumen(
             id=item.id,

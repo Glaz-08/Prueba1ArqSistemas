@@ -1,7 +1,8 @@
 from fastapi import APIRouter
 
-from app.api.routes import health, registros
+from app.api.routes import estadisticas, health, registros
 
 api_router = APIRouter()
 api_router.include_router(health.router, tags=["salud"])
 api_router.include_router(registros.router, prefix="/registros", tags=["registros"])
+api_router.include_router(estadisticas.router, prefix="/estadisticas", tags=["estadisticas"])

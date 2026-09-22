@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { adjuntarEvidencia, crearRegistro } from "../api/registros";
 import type { ElementoEncontrado, Estudiante, Funcionario } from "../types";
+import { RUT_MAX_LENGTH, validarRut } from "../utils/rut";
 
 const PASOS = [
   "Estudiante",
@@ -55,6 +56,9 @@ export default function NuevaRevision() {
     if (paso === 0) {
       if (!estudiante.rut.trim() || !estudiante.nombre.trim() || !estudiante.curso.trim()) {
         return "Completa RUT, nombre y curso del estudiante.";
+      }
+      if (!validarRut(estudiante.rut)) {
+        return "El RUT ingresado no es válido.";
       }
     }
     if (paso === 1) {
@@ -139,6 +143,7 @@ export default function NuevaRevision() {
               value={estudiante.rut}
               onChange={(e) => setEstudiante({ ...estudiante, rut: e.target.value })}
               placeholder="12.345.678-5"
+              maxLength={RUT_MAX_LENGTH}
             />
           </label>
           <label>
@@ -146,6 +151,7 @@ export default function NuevaRevision() {
             <input
               value={estudiante.nombre}
               onChange={(e) => setEstudiante({ ...estudiante, nombre: e.target.value })}
+              maxLength={200}
             />
           </label>
           <label>
@@ -154,6 +160,7 @@ export default function NuevaRevision() {
               value={estudiante.curso}
               onChange={(e) => setEstudiante({ ...estudiante, curso: e.target.value })}
               placeholder="2° medio A"
+              maxLength={50}
             />
           </label>
         </section>
@@ -173,6 +180,7 @@ export default function NuevaRevision() {
                     copia[indice] = { ...item, nombre: e.target.value };
                     setFuncionarios(copia);
                   }}
+                  maxLength={200}
                 />
               </label>
               <label>
@@ -185,6 +193,7 @@ export default function NuevaRevision() {
                     copia[indice] = { ...item, cargo: e.target.value };
                     setFuncionarios(copia);
                   }}
+                  maxLength={120}
                 />
               </label>
               {funcionarios.length > 1 && (
@@ -223,6 +232,7 @@ export default function NuevaRevision() {
               value={motivo}
               onChange={(e) => setMotivo(e.target.value)}
               placeholder="Indica el fundamento del procedimiento."
+              maxLength={1000}
             />
           </label>
           <h3>Elementos encontrados</h3>
@@ -234,6 +244,7 @@ export default function NuevaRevision() {
                 <input
                   type="number"
                   min={1}
+                  max={999}
                   value={item.cantidad}
                   onChange={(e) => {
                     const copia = [...elementos];
@@ -251,6 +262,7 @@ export default function NuevaRevision() {
                     copia[indice] = { ...item, descripcion: e.target.value };
                     setElementos(copia);
                   }}
+                  maxLength={300}
                 />
               </label>
               <label>
@@ -262,6 +274,7 @@ export default function NuevaRevision() {
                     copia[indice] = { ...item, observaciones: e.target.value };
                     setElementos(copia);
                   }}
+                  maxLength={500}
                 />
               </label>
               <button

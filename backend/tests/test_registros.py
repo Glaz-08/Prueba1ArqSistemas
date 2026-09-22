@@ -1,43 +1,12 @@
 from fastapi.testclient import TestClient
 
+from conftest import crear_registro, payload_valido
+
 PNG_1X1 = (
     b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
     b"\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx\x9cc\x00\x01"
     b"\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82"
 )
-
-
-def payload_valido(**overrides: object) -> dict:
-    data = {
-        "estudiante": {
-            "rut": "11.111.111-1",
-            "nombre": "Camila Soto",
-            "curso": "2° medio A",
-        },
-        "funcionarios_presentes": [
-            {"nombre": "Pedro Núñez", "cargo": "Inspector general"},
-            {"nombre": "Ana Reyes", "cargo": "Orientadora"},
-        ],
-        "motivo": "Denuncia de posible porte de objeto prohibido",
-        "elementos_encontrados": [
-            {
-                "cantidad": 1,
-                "descripcion": "Encendedor",
-                "observaciones": "En el bolsillo exterior de la mochila",
-            }
-        ],
-        "fecha": "2026-09-20",
-        "hora_inicio": "10:15",
-        "hora_termino": "10:32",
-    }
-    data.update(overrides)
-    return data
-
-
-def crear_registro(client: TestClient, **overrides: object) -> dict:
-    response = client.post("/api/registros", json=payload_valido(**overrides))
-    assert response.status_code == 201, response.text
-    return response.json()
 
 
 def test_crear_registro_completo(client: TestClient) -> None:
