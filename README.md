@@ -60,9 +60,13 @@ Frontend en http://localhost:5173.
 
 ## Probarlo con datos de ejemplo
 
+Crea 30 revisiones de ejemplo para ver Consulta y Estadísticas con contenido real.
+
+### Con Docker
+
 ```bash
-cd backend
-.venv\Scripts\python.exe scripts\seed.py
+docker compose up -d backend
+docker compose exec backend python scripts/seed.py
 ```
 
 Crea 30 revisiones de ejemplo para ver Consulta y Estadísticas con contenido real.
