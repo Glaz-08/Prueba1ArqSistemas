@@ -31,7 +31,7 @@ flowchart LR
 
 ## Cómo levantarlo
 
-### Con Docker (más simple)
+### Con Docker 
 
 ```bash
 docker compose up --build backend
@@ -39,17 +39,7 @@ docker compose up --build backend
 
 Backend en http://localhost:8000 (documentación interactiva en `/docs`).
 
-### Sin Docker
-
 ```bash
-# Backend
-cd backend
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-copy .env.example .env
-uvicorn app.main:app --reload
-
 # Frontend, en otra terminal
 cd frontend
 npm install
