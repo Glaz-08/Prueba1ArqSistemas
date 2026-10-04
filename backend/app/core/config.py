@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     frontend_origin: str = "http://localhost:5173"
     database_url: str = "sqlite:///./data/app.db"
     upload_dir: str = "uploads"
+    secret_key: str = "clave-desarrollo-cambiar-en-produccion"
+    token_expire_minutos: int = 60 * 8
 
     model_config = SettingsConfigDict(
         env_file=".env",

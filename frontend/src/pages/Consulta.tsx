@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { listarRegistros } from "../api/registros";
+import { listarRegistros, exportarConsultaPdf } from "../api/registros";
 import { CURSOS_BASICA, CURSOS_MEDIA } from "../data/cursos";
 import type { FiltrosConsulta, RegistroResumen } from "../types";
 
@@ -142,6 +142,22 @@ export default function Consulta() {
           <button type="button" className="button secondary" onClick={limpiar} disabled={buscando}>
             Limpiar
           </button>
+          {registros && registros.length > 0 && (
+            <button
+              type="button"
+              className="button"
+              onClick={async () => {
+                try {
+                  await exportarConsultaPdf({ ...filtros, curso: curso() });
+                } catch (err: unknown) {
+                  setError(err instanceof Error ? err.message : "No se pudo exportar a PDF");
+                }
+              }}
+              disabled={buscando}
+            >
+              Exportar PDF
+            </button>
+          )}
         </div>
       </form>
 

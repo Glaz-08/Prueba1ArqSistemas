@@ -7,7 +7,42 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.core.database import Base, get_db
+from app.core.security import hash_password
 from app.main import app
+from app.models.usuario import Usuario
+
+
+def _crear_suarios(engine) -> None:
+    Session = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    db = Session()
+    try:
+        db.add_all(
+            [
+                Usuario(
+                    nombre="Admin de prueba",
+                    username="admin",
+                    password_hash=hash_password("admin123"),
+                    rol="admin",
+                    cargo="Administrador",
+                ),
+                Usuario(
+                    nombre="Laura Fuentes",
+                    username="funcionario",
+                    password_hash=hash_password("funcionario123"),
+                    rol="funcionario",
+                    cargo="Inspectora",
+                ),
+            ]
+        )
+        db.commit()
+    finally:
+        db.close()
+
+
+def _iniciar_sesion(client: TestClient, username: str = "funcionario", password: str = "funcionario123") -> str:
+    response = client.post("/api/auth/login", json={"username": username, "password": password})
+    assert response.status_code == 200, response.text
+    return response.json()["access_token"]
 
 
 @pytest.fixture
@@ -21,6 +56,36 @@ def client(tmp_path, monkeypatch) -> Generator[TestClient, None, None]:
     )
     TestingSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     Base.metadata.create_all(bind=engine)
+    _crear_suarios(engine)
+
+    def override_get_db() -> Generator[Session, None, None]:
+        db = TestingSession()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    app.dependency_overrides[get_db] = override_get_db
+    with TestClient(app) as test_client:
+        token = _iniciar_sesion(test_client)
+        test_client.headers["Authorization"] = f"Bearer {token}"
+        yield test_client
+    app.dependency_overrides.clear()
+    Base.metadata.drop_all(bind=engine)
+
+
+@pytest.fixture
+def client_sin_auth(tmp_path, monkeypatch) -> Generator[TestClient, None, None]:
+    monkeypatch.setattr("app.core.config.settings.upload_dir", str(tmp_path))
+
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    TestingSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    Base.metadata.create_all(bind=engine)
+    _crear_suarios(engine)
 
     def override_get_db() -> Generator[Session, None, None]:
         db = TestingSession()

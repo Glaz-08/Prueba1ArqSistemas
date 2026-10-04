@@ -1,4 +1,5 @@
 export type Estudiante = {
+  id?: string;
   rut: string;
   nombre: string;
   curso: string;
@@ -6,6 +7,7 @@ export type Estudiante = {
 
 export type Funcionario = {
   id?: string;
+  rut?: string;
   nombre: string;
   cargo: string;
 };
@@ -54,6 +56,20 @@ export type RegistroCreate = {
   fecha: string;
   hora_inicio: string;
   hora_termino: string;
+};
+
+export type EstudianteCatalogo = {
+  id: string;
+  rut: string;
+  nombre: string;
+  curso: string;
+};
+
+export type FuncionarioCatalogo = {
+  id: string;
+  rut: string;
+  nombre: string;
+  cargo: string;
 };
 
 export type FiltrosConsulta = {

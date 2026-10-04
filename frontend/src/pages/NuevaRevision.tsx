@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { adjuntarEvidencia, crearRegistro } from "../api/registros";
+import { listarEstudiantes, listarFuncionarios } from "../api/catalogos";
 import type { ElementoEncontrado, Estudiante, Funcionario } from "../types";
 import { RUT_MAX_LENGTH, validarRut } from "../utils/rut";
 
@@ -22,7 +23,7 @@ const CARGOS = [
 ];
 
 function funcionarioVacio(): Funcionario {
-  return { nombre: "", cargo: CARGOS[0] };
+  return { nombre: "", cargo: CARGOS[0], rut: "" };
 }
 
 function elementoVacio(): ElementoEncontrado {
@@ -47,10 +48,118 @@ export default function NuevaRevision() {
   const [horaTermino, setHoraTermino] = useState("09:20");
   const [fotos, setFotos] = useState<File[]>([]);
 
+  // Autocomplete
+  const [estudianteSugerencias, setEstudianteSugerencias] = useState<Estudiante[]>([]);
+  const [funcionarioSugerencias, setFuncionarioSugerencias] = useState<Map<number, Funcionario[]>>(() => new Map());
+  const [mostrarEstudiantes, setMostrarEstudiantes] = useState(false);
+  const [mostrarFuncionarios, setMostrarFuncionarios] = useState<number | null>(null);
+  const estudianteInputRef = useRef<HTMLInputElement>(null);
+  const funcionarioInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Debounce timers
+  const estudianteDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const funcionarioDebounceRefs = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map<number, ReturnType<typeof setTimeout>>());
+
   const resumenElementos = useMemo(
     () => elementos.filter((item) => item.descripcion.trim()),
     [elementos],
   );
+
+  // Autocomplete para estudiante
+  useEffect(() => {
+    if (estudianteDebounceRef.current) clearTimeout(estudianteDebounceRef.current);
+    const rut = estudiante.rut.trim();
+    if (rut.length >= 3) {
+      estudianteDebounceRef.current = setTimeout(async () => {
+        try {
+          const resultados = await listarEstudiantes(rut);
+          setEstudianteSugerencias(resultados.slice(0, 10));
+          setMostrarEstudiantes(resultados.length > 0);
+        } catch {
+          setEstudianteSugerencias([]);
+          setMostrarEstudiantes(false);
+        }
+      }, 300);
+    } else {
+      setEstudianteSugerencias([]);
+      setMostrarEstudiantes(false);
+    }
+    return () => {
+      if (estudianteDebounceRef.current) clearTimeout(estudianteDebounceRef.current);
+    };
+  }, [estudiante.rut]);
+
+  // Autocomplete para funcionario
+  function buscarFuncionarios(indice: number, rut: string) {
+    if (funcionarioDebounceRefs.current.has(indice)) {
+      clearTimeout(funcionarioDebounceRefs.current.get(indice)!);
+    }
+    if (rut.trim().length >= 3) {
+      const timeout = setTimeout(async () => {
+        try {
+          const resultados = await listarFuncionarios(rut);
+          setFuncionarioSugerencias(prev => {
+            const nuevo = new Map(prev);
+            nuevo.set(indice, resultados.slice(0, 10));
+            return nuevo;
+          });
+          setMostrarFuncionarios(indice);
+        } catch {
+          setFuncionarioSugerencias(prev => {
+            const nuevo = new Map(prev);
+            nuevo.set(indice, []);
+            return nuevo;
+          });
+        }
+      }, 300);
+      funcionarioDebounceRefs.current.set(indice, timeout);
+    } else {
+      setFuncionarioSugerencias(prev => {
+        const nuevo = new Map(prev);
+        nuevo.set(indice, []);
+        return nuevo;
+      });
+    }
+  }
+
+  function seleccionarEstudiante(est: Estudiante) {
+    setEstudiante({ rut: est.rut, nombre: est.nombre, curso: est.curso });
+    setEstudianteSugerencias([]);
+    setMostrarEstudiantes(false);
+  }
+
+  function seleccionarFuncionario(indice: number, func: Funcionario) {
+    const copia = [...funcionarios];
+    copia[indice] = { ...copia[indice], nombre: func.nombre, cargo: func.cargo };
+    setFuncionarios(copia);
+    setFuncionarioSugerencias(prev => {
+      const nuevo = new Map(prev);
+      nuevo.set(indice, []);
+      return nuevo;
+    });
+    setMostrarFuncionarios(null);
+  }
+
+  // Cerrar dropdowns al hacer click fuera
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (estudianteInputRef.current && !estudianteInputRef.current.contains(e.target as Node)) {
+        setMostrarEstudiantes(false);
+      }
+      funcionarioInputRefs.current.forEach((ref, idx) => {
+        if (ref && !ref.contains(e.target as Node)) {
+          setFuncionarioSugerencias(prev => {
+            const nuevo = new Map(prev);
+            nuevo.set(idx, []);
+            return nuevo;
+          });
+        }
+      });
+      setMostrarFuncionarios(null);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   function validarPaso(): string | null {
     if (paso === 0) {
@@ -139,12 +248,31 @@ export default function NuevaRevision() {
           <h2>Estudiante involucrado</h2>
           <label>
             RUT
-            <input
-              value={estudiante.rut}
-              onChange={(e) => setEstudiante({ ...estudiante, rut: e.target.value })}
-              placeholder="12.345.678-5"
-              maxLength={RUT_MAX_LENGTH}
-            />
+            <div style={{ position: "relative" }}>
+              <input
+                ref={estudianteInputRef}
+                value={estudiante.rut}
+                onChange={(e) => setEstudiante({ ...estudiante, rut: e.target.value })}
+                onFocus={() => estudiante.rut.trim().length >= 3 && setMostrarEstudiantes(true)}
+                placeholder="12.345.678-5"
+                maxLength={RUT_MAX_LENGTH}
+                autoComplete="off"
+              />
+              {mostrarEstudiantes && estudianteSugerencias.length > 0 && (
+                <ul className="autocomplete-dropdown" role="listbox">
+                  {estudianteSugerencias.map((est) => (
+                    <li
+                      key={est.id}
+                      role="option"
+                      onClick={() => seleccionarEstudiante(est)}
+                      onMouseDown={(e) => e.preventDefault()}
+                    >
+                      <strong>{est.rut}</strong> — {est.nombre} <span className="ayuda">({est.curso})</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </label>
           <label>
             Nombre completo
@@ -171,6 +299,40 @@ export default function NuevaRevision() {
           <h2>Funcionarios presentes</h2>
           {funcionarios.map((item, indice) => (
             <div className="fila-dinamica" key={indice}>
+              <label>
+                RUT
+                <div style={{ position: "relative" }}>
+                  <input
+                    ref={(el) => { funcionarioInputRefs.current[indice] = el; }}
+                    value={item.rut || ""}
+                    onChange={(e) => {
+                      const rut = e.target.value;
+                      const copia = [...funcionarios];
+                      copia[indice] = { ...item, rut };
+                      setFuncionarios(copia);
+                      buscarFuncionarios(indice, rut);
+                    }}
+                    onFocus={() => (item.rut || "").trim().length >= 3 && setMostrarFuncionarios(indice)}
+                    placeholder="12.345.678-5"
+                    maxLength={RUT_MAX_LENGTH}
+                    autoComplete="off"
+                  />
+                  {mostrarFuncionarios === indice && (funcionarioSugerencias.get(indice) || []).length > 0 && (
+                    <ul className="autocomplete-dropdown" role="listbox">
+                      {(funcionarioSugerencias.get(indice) || []).map((func) => (
+                        <li
+                          key={func.id}
+                          role="option"
+                          onClick={() => seleccionarFuncionario(indice, func)}
+                          onMouseDown={(e) => e.preventDefault()}
+                        >
+                          <strong>{func.rut}</strong> — {func.nombre} <span className="ayuda">({func.cargo})</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </label>
               <label>
                 Nombre
                 <input

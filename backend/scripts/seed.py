@@ -15,6 +15,8 @@ from datetime import date, timedelta
 import httpx
 
 API_URL = os.environ.get("API_URL", "http://127.0.0.1:8000/api")
+SEED_USER = os.environ.get("SEED_USER", "funcionario")
+SEED_PASSWORD = os.environ.get("SEED_PASSWORD", "funcionario123")
 
 ESTUDIANTES = [
     ("11111111", "Camila Soto", "2° medio A"),
@@ -35,11 +37,11 @@ MOTIVOS = [
 ]
 
 FUNCIONARIOS = [
-    ("Pedro Núñez", "Inspector general"),
-    ("Ana Reyes", "Orientador/a de convivencia"),
-    ("Laura Fuentes", "Docente"),
-    ("Jorge Salinas", "Inspector de patio"),
-    ("Marcela Vega", "Directivo"),
+    ("21111111", "Pedro Núñez", "Inspector general"),
+    ("22222222", "Ana Reyes", "Orientador/a de convivencia"),
+    ("23333333", "Laura Fuentes", "Docente"),
+    ("24444444", "Jorge Salinas", "Inspector de patio"),
+    ("25555555", "Marcela Vega", "Directivo"),
 ]
 
 ELEMENTOS = [
@@ -74,7 +76,7 @@ def registro_aleatorio(rng: random.Random, dias_atras: int) -> dict:
     return {
         "estudiante": {"rut": rut, "nombre": nombre, "curso": curso},
         "funcionarios_presentes": [
-            {"nombre": nom, "cargo": cargo} for nom, cargo in presentes
+            {"nombre": nombre, "cargo": cargo} for _, nombre, cargo in presentes
         ],
         "motivo": rng.choice(MOTIVOS),
         "elementos_encontrados": rng.choice(ELEMENTOS),
@@ -90,6 +92,18 @@ def main() -> None:
     errores = 0
 
     with httpx.Client(base_url=API_URL, timeout=10) as client:
+        login = client.post("/auth/login", json={"username": SEED_USER, "password": SEED_PASSWORD})
+        if login.status_code != 200:
+            print(f"No se pudo iniciar sesión ({login.status_code}): {login.text}")
+            print("Ejecuta primero: python scripts/seed_usuarios.py")
+            return
+        client.headers["Authorization"] = f"Bearer {login.json()['access_token']}"
+        for cuerpo, nombre, curso in ESTUDIANTES:
+            ruta = f"{cuerpo}-{calcular_dv(cuerpo)}"
+            client.post("/estudiantes", json={"rut": ruta, "nombre": nombre, "curso": curso})
+        for cuerpo, nombre, cargo in FUNCIONARIOS:
+            ruta = f"{cuerpo}-{calcular_dv(cuerpo)}"
+            client.post("/funcionarios", json={"rut": ruta, "nombre": nombre, "cargo": cargo})
         for dias_atras in range(0, 120, 4):
             payload = registro_aleatorio(rng, dias_atras)
             response = client.post("/registros", json=payload)

@@ -3,7 +3,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session, selectinload
 from starlette.responses import FileResponse
@@ -22,7 +22,11 @@ from app.schemas.registro import (
     RegistroOut,
     RegistroResumen,
 )
-from app.services.documento import documento_payload, render_documento_html
+from app.services.documento import (
+    documento_payload,
+    render_consulta_pdf,
+    render_documento_html,
+)
 
 router = APIRouter()
 
@@ -227,3 +231,70 @@ def descargar_documento_html(registro_id: str, db: Session = Depends(get_db)) ->
         "Content-Disposition": f'attachment; filename="copia-revision-{registro.id[:8]}.html"'
     }
     return HTMLResponse(content=html, headers=headers)
+
+
+@router.get("/exportar/pdf")
+def exportar_consulta_pdf(
+    estudiante: str | None = Query(default=None, description="Nombre o RUT del estudiante"),
+    curso: str | None = Query(default=None, description="Curso del estudiante"),
+    motivo: str | None = Query(default=None, description="Texto contenido en el motivo"),
+    fecha_desde: date | None = Query(default=None),
+    fecha_hasta: date | None = Query(default=None),
+    db: Session = Depends(get_db),
+) -> Response:
+    query = db.query(RegistroRevision).options(
+        selectinload(RegistroRevision.funcionarios),
+        selectinload(RegistroRevision.elementos),
+        selectinload(RegistroRevision.evidencias),
+    )
+
+    estudiante = estudiante.strip() if estudiante else None
+    curso = curso.strip() if curso else None
+    motivo = motivo.strip() if motivo else None
+
+    condiciones = []
+    if estudiante:
+        from app.api.routes.registros import _patron_busqueda
+        patron = _patron_busqueda(estudiante)
+        condiciones.append(
+            or_(
+                RegistroRevision.estudiante_nombre.ilike(patron, escape="\\"),
+                RegistroRevision.estudiante_rut.ilike(patron, escape="\\"),
+            )
+        )
+    if curso:
+        from app.api.routes.registros import _patron_busqueda
+        condiciones.append(
+            RegistroRevision.estudiante_curso.ilike(_patron_busqueda(curso), escape="\\")
+        )
+    if motivo:
+        from app.api.routes.registros import _patron_busqueda
+        condiciones.append(RegistroRevision.motivo.ilike(_patron_busqueda(motivo), escape="\\"))
+    if fecha_desde:
+        condiciones.append(RegistroRevision.fecha >= fecha_desde)
+    if fecha_hasta:
+        condiciones.append(RegistroRevision.fecha <= fecha_hasta)
+
+    if condiciones:
+        query = query.filter(and_(*condiciones))
+
+    registros = query.order_by(RegistroRevision.created_at.desc()).all()
+
+    filtros_aplicados = {}
+    if estudiante:
+        filtros_aplicados["estudiante"] = estudiante
+    if curso:
+        filtros_aplicados["curso"] = curso
+    if motivo:
+        filtros_aplicados["motivo"] = motivo
+    if fecha_desde:
+        filtros_aplicados["fecha_desde"] = fecha_desde.isoformat()
+    if fecha_hasta:
+        filtros_aplicados["fecha_hasta"] = fecha_hasta.isoformat()
+
+    pdf_bytes = render_consulta_pdf(registros, filtros_aplicados)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": 'attachment; filename="consulta-revisiones.pdf"'},
+    )

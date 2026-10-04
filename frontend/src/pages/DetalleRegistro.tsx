@@ -12,6 +12,7 @@ export default function DetalleRegistro() {
   const navigate = useNavigate();
   const [registro, setRegistro] = useState<Registro | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [evidenciasUrl, setEvidenciasUrl] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!id) {
@@ -23,6 +24,31 @@ export default function DetalleRegistro() {
         setError(err instanceof Error ? err.message : "No se encontró el registro");
       });
   }, [id]);
+
+  useEffect(() => {
+    if (!id || !registro) {
+      return;
+    }
+    let activo = true;
+    const urls: Record<string, string> = {};
+    Promise.all(
+      registro.evidencias.map(async (item) => {
+        try {
+          urls[item.id] = await urlEvidencia(id, item.id);
+        } catch {
+          /* sin vista previa */
+        }
+      }),
+    ).then(() => {
+      if (activo) {
+        setEvidenciasUrl(urls);
+      }
+    });
+    return () => {
+      activo = false;
+      Object.values(urls).forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [id, registro]);
 
   async function descargar() {
     if (!id) {
@@ -112,7 +138,7 @@ export default function DetalleRegistro() {
           <div className="evidencias">
             {registro.evidencias.map((item) => (
               <figure key={item.id}>
-                <img src={urlEvidencia(id, item.id)} alt={item.nombre_archivo} />
+                <img src={evidenciasUrl[item.id] ?? ""} alt={item.nombre_archivo} />
                 <figcaption>{item.nombre_archivo}</figcaption>
               </figure>
             ))}

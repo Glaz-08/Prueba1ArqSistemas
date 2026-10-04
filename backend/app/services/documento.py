@@ -1,4 +1,11 @@
 from html import escape
+from io import BytesIO
+
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.units import cm
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
 
 from app.models.registro import RegistroRevision
 
@@ -128,3 +135,86 @@ def render_documento_html(registro: RegistroRevision) -> str:
 </body>
 </html>
 """
+
+
+def render_consulta_pdf(registros: list[RegistroRevision], filtros: dict | None = None) -> bytes:
+    """Genera un PDF con el listado de revisiones filtradas."""
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        leftMargin=2 * cm,
+        rightMargin=2 * cm,
+        topMargin=2 * cm,
+        bottomMargin=2 * cm,
+    )
+    styles = getSampleStyleSheet()
+    story = []
+
+    # Título
+    title_style = styles["Title"]
+    title_style.fontSize = 16
+    story.append(Paragraph("Listado de Revisiones — Ley 21.827", title_style))
+    story.append(Spacer(1, 0.5 * cm))
+
+    # Filtros aplicados
+    if filtros:
+        filtros_texto = []
+        if filtros.get("estudiante"):
+            filtros_texto.append(f"Estudiante: {filtros['estudiante']}")
+        if filtros.get("curso"):
+            filtros_texto.append(f"Curso: {filtros['curso']}")
+        if filtros.get("motivo"):
+            filtros_texto.append(f"Motivo: {filtros['motivo']}")
+        if filtros.get("fecha_desde"):
+            filtros_texto.append(f"Desde: {filtros['fecha_desde']}")
+        if filtros.get("fecha_hasta"):
+            filtros_texto.append(f"Hasta: {filtros['fecha_hasta']}")
+        if filtros_texto:
+            story.append(Paragraph("<b>Filtros:</b> " + " | ".join(filtros_texto), styles["Normal"]))
+            story.append(Spacer(1, 0.3 * cm))
+
+    # Tabla de datos
+    headers = ["Fecha", "Estudiante", "RUT", "Curso", "Horario", "Motivo", "Elementos"]
+    data = [headers]
+
+    for r in registros:
+        elementos_str = "; ".join(
+            f"{e.cantidad}× {e.descripcion}" for e in r.elementos
+        ) if r.elementos else "—"
+        data.append([
+            r.fecha.strftime("%d-%m-%Y"),
+            r.estudiante_nombre,
+            r.estudiante_rut,
+            r.estudiante_curso,
+            f"{r.hora_inicio.strftime('%H:%M')}–{r.hora_termino.strftime('%H:%M')}",
+            r.motivo[:60] + ("..." if len(r.motivo) > 60 else ""),
+            elementos_str[:80] + ("..." if len(elementos_str) > 80 else ""),
+        ])
+
+    col_widths = [2.2 * cm, 2.8 * cm, 2.2 * cm, 2 * cm, 2.5 * cm, 4 * cm, 4 * cm]
+    table = Table(data, colWidths=col_widths, repeatRows=1)
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1d4ed8")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, 0), 9),
+        ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
+        ("TOPPADDING", (0, 0), (-1, 0), 8),
+        ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+        ("FONTSIZE", (0, 1), (-1, -1), 8),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f1f5f9")]),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 4),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+    ]))
+    story.append(table)
+
+    # Totales
+    story.append(Spacer(1, 0.5 * cm))
+    story.append(Paragraph(f"<b>Total: {len(registros)} revisiones</b>", styles["Normal"]))
+
+    doc.build(story)
+    buffer.seek(0)
+    return buffer.read()

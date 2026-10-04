@@ -29,12 +29,41 @@ flowchart LR
 
 ```
 
-## Cómo levantarlo
+## Autenticación
 
-### Con Docker 
+Hay dos roles: **admin** y **funcionario**. Las rutas `/api/registros` y `/api/estadisticas`
+exigen un token Bearer (login en `POST /api/auth/login`); `/api/salud` y la documentación
+siguen públicas. Cerrar sesión es `POST /api/auth/logout` y el cliente descarta el token.
+Crear usuarios adicionales es `POST /api/auth/usuarios` y solo lo puede hacer un **admin**.
+
+Usuarios de prueba (créalos con):
 
 ```bash
-docker compose up --build backend
+docker compose exec backend python scripts/seed_usuarios.py
+```
+
+| Usuario      | Contraseña       | Rol          |
+| ---          | ---              | ---          |
+| `admin`      | `admin123`       | administrador|
+| `funcionario`| `funcionario123` | funcionario  |
+
+## Cómo levantarlo
+
+### Con Docker (recomendado)
+
+**Primera vez / arranque limpio** (borra la base de datos y vuelve a crearla):
+
+```bash
+docker compose down -v          # ⚠️ solo si quieres limpiar la BD (borra volúmenes)
+docker compose up --build -d    # levanta backend + PostgreSQL en segundo plano
+docker compose exec backend python scripts/seed_usuarios.py   # crea usuarios admin/funcionario
+docker compose exec backend python scripts/seed.py            # (opcional) datos de prueba: 30 registros
+```
+
+**Arranque diario** (mantiene los datos):
+
+```bash
+docker compose up -d            # levanta contenedores existentes
 ```
 
 Backend en http://localhost:8000 (documentación interactiva en `/docs`).
@@ -50,14 +79,13 @@ Frontend en http://localhost:5173.
 
 ## Probarlo con datos de ejemplo
 
-Crea 30 revisiones de ejemplo para ver Consulta y Estadísticas con contenido real.
+Con el backend ya corriendo:
 
 ```bash
-docker compose up -d backend
 docker compose exec backend python scripts/seed.py
 ```
 
-Crea 30 revisiones de ejemplo para ver Consulta y Estadísticas con contenido real.
+Crea 7 estudiantes, 5 funcionarios y 30 revisiones aleatorias. Se puede repetir para agregar más datos.
 
 ## Tests y cobertura
 

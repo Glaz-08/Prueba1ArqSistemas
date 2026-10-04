@@ -7,7 +7,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api import api_router
 from app.core.config import settings
 from app.core.database import Base, engine
+from app.models import catalogo as _catalogo_models  # noqa: F401
 from app.models import registro as _registro_models  # noqa: F401
+from app.models import usuario as _usuario_models  # noqa: F401
 
 
 @asynccontextmanager

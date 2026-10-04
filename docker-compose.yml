@@ -28,6 +28,7 @@ services:
       FRONTEND_ORIGIN: http://localhost:5173
       DATABASE_URL: postgresql+psycopg://revisiones:revisiones@db:5432/revisiones
       UPLOAD_DIR: /app/uploads
+      SECRET_KEY: cambia-esta-clave-en-produccion
     volumes:
       - uploads:/app/uploads
     depends_on:
