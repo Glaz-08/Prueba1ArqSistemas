@@ -306,23 +306,30 @@ export default function NuevaRevision() {
 
   return (
     <main className="layout">
-      <p className="eyebrow">Nueva revisión</p>
-      <h1>Formulario de procedimiento</h1>
+      <div className="intro">
+        <p className="eyebrow">Nueva revisión</p>
+        <h1>Registrar un procedimiento</h1>
+        <p>Completa los antecedentes del procedimiento, paso a paso.</p>
+      </div>
       <ol className="pasos">
         {PASOS.map((nombre, indice) => (
           <li key={nombre} className={indice === paso ? "activo" : indice < paso ? "hecho" : ""}>
-            {indice + 1}. {nombre}
+            <b>{indice + 1}</b>
+            {nombre}
           </li>
         ))}
       </ol>
 
       {paso === 0 && (
-        <section className="card form-grid">
-          <h2>Estudiante involucrado</h2>
-          <p className="ayuda" style={{ gridColumn: "1 / -1" }}>
-            Ingresa el RUT. Nombre y curso se completan si el estudiante ya está en el{" "}
-            <Link to="/catalogos/estudiantes">catálogo de estudiantes</Link>.
-          </p>
+        <section className="card">
+          <div className="card-head">
+            <div>
+              <h2>Estudiante involucrado</h2>
+              <p>Comienza por identificar al estudiante.</p>
+            </div>
+            <span className="badge blue">Paso 1 de 6</span>
+          </div>
+          <div className="form-grid">
           <label>
             RUT
             <div style={{ position: "relative" }}>
@@ -371,16 +378,31 @@ export default function NuevaRevision() {
               placeholder={buscandoEstudiante ? "Buscando…" : "Se completa con el RUT"}
             />
           </label>
+          </div>
+          <div className="note">
+            El nombre y el curso se completan si el estudiante está en el catálogo.{" "}
+            <Link className="text-btn" to="/catalogos/estudiantes">
+              Ver estudiantes →
+            </Link>
+          </div>
         </section>
       )}
 
       {paso === 1 && (
         <section className="card">
-          <h2>Funcionarios presentes</h2>
-          <p className="ayuda">
-            Ingresa el RUT. Nombre y cargo se completan si el funcionario ya está en el{" "}
-            <Link to="/catalogos/funcionarios">catálogo de funcionarios</Link>.
-          </p>
+          <div className="card-head">
+            <div>
+              <h2>Funcionarios presentes</h2>
+              <p>Ingresa el RUT. Nombre y cargo se completan desde el catálogo.</p>
+            </div>
+            <span className="badge blue">Paso 2 de 6</span>
+          </div>
+          <div className="note">
+            Cada funcionario debe existir en el catálogo.{" "}
+            <Link className="text-btn" to="/catalogos/funcionarios">
+              Ver funcionarios →
+            </Link>
+          </div>
           {funcionarios.map((item, indice) => (
             <div className="fila-dinamica" key={indice}>
               <label>
@@ -457,7 +479,13 @@ export default function NuevaRevision() {
 
       {paso === 2 && (
         <section className="card">
-          <h2>Motivo y elementos encontrados</h2>
+          <div className="card-head">
+            <div>
+              <h2>Motivo y elementos encontrados</h2>
+              <p>Describe el fundamento y, si corresponde, lo hallado.</p>
+            </div>
+            <span className="badge blue">Paso 3 de 6</span>
+          </div>
           <label>
             Motivo de la revisión
             <textarea
@@ -530,8 +558,15 @@ export default function NuevaRevision() {
       )}
 
       {paso === 3 && (
-        <section className="card form-grid">
-          <h2>Fecha y horarios del procedimiento</h2>
+        <section className="card">
+          <div className="card-head">
+            <div>
+              <h2>Fecha y horarios del procedimiento</h2>
+              <p>Indica cuándo se realizó la revisión.</p>
+            </div>
+            <span className="badge blue">Paso 4 de 6</span>
+          </div>
+          <div className="form-grid">
           <label>
             Fecha
             <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
@@ -548,13 +583,19 @@ export default function NuevaRevision() {
               onChange={(e) => setHoraTermino(e.target.value)}
             />
           </label>
+          </div>
         </section>
       )}
 
       {paso === 4 && (
         <section className="card">
-          <h2>Evidencia fotográfica (opcional)</h2>
-          <p className="ayuda">JPG, PNG o WEBP. Máximo 5 MB por archivo.</p>
+          <div className="card-head">
+            <div>
+              <h2>Evidencia fotográfica</h2>
+              <p>Opcional. JPG, PNG o WEBP. Máximo 5 MB por archivo.</p>
+            </div>
+            <span className="badge blue">Paso 5 de 6</span>
+          </div>
           <input
             type="file"
             accept="image/jpeg,image/png,image/webp"
@@ -573,7 +614,13 @@ export default function NuevaRevision() {
 
       {paso === 5 && (
         <section className="card">
-          <h2>Confirmar registro</h2>
+          <div className="card-head">
+            <div>
+              <h2>Confirmar registro</h2>
+              <p>Revisa los antecedentes antes de guardar.</p>
+            </div>
+            <span className="badge blue">Paso 6 de 6</span>
+          </div>
           <dl className="resumen">
             <dt>Estudiante</dt>
             <dd>

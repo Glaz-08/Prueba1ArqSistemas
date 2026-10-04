@@ -73,11 +73,16 @@ export default function Funcionarios() {
 
   return (
     <main className="layout">
-      <p className="eyebrow">Catálogo</p>
-      <h1>Funcionarios</h1>
+      <div className="intro">
+        <p className="eyebrow">Comunidad escolar</p>
+        <h1>Funcionarios</h1>
+        <p>Mantén actualizado el catálogo de funcionarios del establecimiento.</p>
+      </div>
 
       <section className="card">
-        <h2>{editandoId ? "Editar funcionario" : "Nuevo funcionario"}</h2>
+        <div className="card-head">
+          <h2>{editandoId ? "Editar funcionario" : "Nuevo funcionario"}</h2>
+        </div>
         <form onSubmit={(event) => void guardar(event)} className="form-grid">
           <label>
             RUT
@@ -131,9 +136,10 @@ export default function Funcionarios() {
       </section>
 
       <section className="card">
-        <div className="seccion-titulo">
-          <h2>Listado</h2>
+        <div className="card-head">
+          <h2>Listado de funcionarios</h2>
           <input
+            className="search"
             placeholder="Buscar por nombre, RUT o cargo"
             value={busqueda}
             onChange={(e) => {
@@ -145,13 +151,14 @@ export default function Funcionarios() {
         {items.length === 0 ? (
           <p>No hay funcionarios registrados.</p>
         ) : (
+          <div className="table-wrap">
           <table className="tabla">
             <thead>
               <tr>
                 <th>RUT</th>
                 <th>Nombre</th>
                 <th>Cargo</th>
-                <th></th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -159,19 +166,21 @@ export default function Funcionarios() {
                 <tr key={item.id}>
                   <td>{item.rut}</td>
                   <td>{item.nombre}</td>
-                  <td>{item.cargo}</td>
+                  <td>
+                    <span className="badge">{item.cargo}</span>
+                  </td>
                   <td>
                     <button
                       type="button"
-                      className="button secondary"
+                      className="text-btn"
                       onClick={() => {
                         setForm({ rut: item.rut, nombre: item.nombre, cargo: item.cargo });
                         setEditandoId(item.id);
                       }}
                     >
                       Editar
-                    </button>{" "}
-                    <button type="button" className="button ghost" onClick={() => void eliminar(item.id)}>
+                    </button>
+                    <button type="button" className="text-btn danger" onClick={() => void eliminar(item.id)}>
                       Eliminar
                     </button>
                   </td>
@@ -179,6 +188,7 @@ export default function Funcionarios() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </section>
     </main>

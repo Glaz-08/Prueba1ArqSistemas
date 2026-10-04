@@ -73,11 +73,16 @@ export default function Estudiantes() {
 
   return (
     <main className="layout">
-      <p className="eyebrow">Catálogo</p>
-      <h1>Estudiantes</h1>
+      <div className="intro">
+        <p className="eyebrow">Comunidad escolar</p>
+        <h1>Estudiantes</h1>
+        <p>Mantén actualizado el catálogo de estudiantes del establecimiento.</p>
+      </div>
 
       <section className="card">
-        <h2>{editandoId ? "Editar estudiante" : "Nuevo estudiante"}</h2>
+        <div className="card-head">
+          <h2>{editandoId ? "Editar estudiante" : "Nuevo estudiante"}</h2>
+        </div>
         <form onSubmit={(event) => void guardar(event)} className="form-grid">
           <label>
             RUT
@@ -131,9 +136,10 @@ export default function Estudiantes() {
       </section>
 
       <section className="card">
-        <div className="seccion-titulo">
-          <h2>Listado</h2>
+        <div className="card-head">
+          <h2>Listado de estudiantes</h2>
           <input
+            className="search"
             placeholder="Buscar por nombre, RUT o curso"
             value={busqueda}
             onChange={(e) => {
@@ -145,13 +151,14 @@ export default function Estudiantes() {
         {items.length === 0 ? (
           <p>No hay estudiantes registrados.</p>
         ) : (
+          <div className="table-wrap">
           <table className="tabla">
             <thead>
               <tr>
                 <th>RUT</th>
                 <th>Nombre</th>
                 <th>Curso</th>
-                <th></th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -159,19 +166,21 @@ export default function Estudiantes() {
                 <tr key={item.id}>
                   <td>{item.rut}</td>
                   <td>{item.nombre}</td>
-                  <td>{item.curso}</td>
+                  <td>
+                    <span className="badge blue">{item.curso}</span>
+                  </td>
                   <td>
                     <button
                       type="button"
-                      className="button secondary"
+                      className="text-btn"
                       onClick={() => {
                         setForm({ rut: item.rut, nombre: item.nombre, curso: item.curso });
                         setEditandoId(item.id);
                       }}
                     >
                       Editar
-                    </button>{" "}
-                    <button type="button" className="button ghost" onClick={() => void eliminar(item.id)}>
+                    </button>
+                    <button type="button" className="text-btn danger" onClick={() => void eliminar(item.id)}>
                       Eliminar
                     </button>
                   </td>
@@ -179,6 +188,7 @@ export default function Estudiantes() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </section>
     </main>

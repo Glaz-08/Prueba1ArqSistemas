@@ -116,12 +116,17 @@ export default function Usuarios() {
 
   return (
     <main className="layout">
-      <p className="eyebrow">Administración</p>
-      <h1>Gestión de usuarios</h1>
-      <p className="ayuda">Solo administradores. Los cambios son inmediatos.</p>
+      <div className="intro">
+        <p className="eyebrow">Administración</p>
+        <h1>Gestión de usuarios</h1>
+        <p>Administra los accesos del equipo escolar.</p>
+      </div>
 
       <section className="card">
-        <h2>{editandoId ? "Editar usuario" : "Nuevo usuario"}</h2>
+        <div className="card-head">
+          <h2>{editandoId ? "Editar usuario" : "Nuevo usuario"}</h2>
+          <span className="badge yellow">Solo administradores</span>
+        </div>
         <form onSubmit={(event) => void guardar(event)} className="form-grid">
           <label>
             Nombre
@@ -205,10 +210,14 @@ export default function Usuarios() {
       </section>
 
       <section className="card">
-        <h2>Listado de usuarios</h2>
+        <div className="card-head">
+          <h2>Usuarios del sistema</h2>
+          <span className="badge blue">{items.length} {items.length === 1 ? "usuario" : "usuarios"}</span>
+        </div>
         {items.length === 0 ? (
           <p>No hay usuarios registrados.</p>
         ) : (
+          <div className="table-wrap">
           <table className="tabla">
             <thead>
               <tr>
@@ -233,24 +242,23 @@ export default function Usuarios() {
                   <td>
                     <button
                       type="button"
-                      className="button secondary"
+                      className="text-btn"
                       onClick={() => editar(item)}
                       disabled={eliminandoId === item.id || reseteandoId === item.id}
                     >
                       Editar
-                    </button>{" "}
+                    </button>
                     <button
                       type="button"
-                      className="button ghost"
+                      className="text-btn"
                       onClick={() => resetearContrasena(item.id)}
                       disabled={eliminandoId === item.id || reseteandoId === item.id}
                     >
                       Resetear clave
-                    </button>{" "}
+                    </button>
                     <button
                       type="button"
-                      className="button ghost"
-                      style={{ color: "#b91c1c" }}
+                      className="text-btn danger"
                       onClick={() => eliminar(item.id)}
                       disabled={eliminandoId === item.id || reseteandoId === item.id || item.rol === "admin"}
                     >
@@ -261,6 +269,7 @@ export default function Usuarios() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </section>
     </main>

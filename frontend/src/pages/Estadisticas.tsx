@@ -23,7 +23,11 @@ function formatoMes(valor: string): string {
   return `${NOMBRES_MES[indice] ?? mes} ${anio}`;
 }
 
-function Desglose({ titulo, items, formatoNombre }: {
+function Desglose({
+  titulo,
+  items,
+  formatoNombre,
+}: {
   titulo: string;
   items: ConteoItem[];
   formatoNombre?: (nombre: string) => string;
@@ -36,22 +40,17 @@ function Desglose({ titulo, items, formatoNombre }: {
       {items.length === 0 ? (
         <p>Sin datos todavía.</p>
       ) : (
-        <ul className="desglose">
-          {items.map((item) => (
-            <li key={item.nombre}>
-              <div className="desglose-fila">
-                <span>{formatoNombre ? formatoNombre(item.nombre) : item.nombre}</span>
-                <span>{item.cantidad}</span>
-              </div>
-              <div className="barra-fondo">
-                <div
-                  className="barra"
-                  style={{ width: `${(item.cantidad / maximo) * 100}%` }}
-                />
-              </div>
-            </li>
-          ))}
-        </ul>
+        items.map((item) => (
+          <div key={item.nombre}>
+            <div className="chart-line">
+              <span>{formatoNombre ? formatoNombre(item.nombre) : item.nombre}</span>
+              <strong>{item.cantidad}</strong>
+            </div>
+            <div className="bar">
+              <span style={{ width: `${(item.cantidad / maximo) * 100}%` }} />
+            </div>
+          </div>
+        ))
       )}
     </section>
   );
@@ -69,11 +68,17 @@ export default function Estadisticas() {
       });
   }, []);
 
+  const mesActual = new Date().toISOString().slice(0, 7);
+  const mesReciente =
+    datos?.por_mes.find((item) => item.nombre === mesActual) ?? datos?.por_mes.at(-1);
+
   return (
     <main className="layout">
-      <p className="eyebrow">Estadísticas</p>
-      <h1>Panel de revisiones</h1>
-      <p className="lead">Totales y desglose de las revisiones registradas hasta ahora.</p>
+      <div className="intro">
+        <p className="eyebrow">Estadísticas</p>
+        <h1>Una mirada a los registros</h1>
+        <p>Totales y distribución de los procedimientos registrados.</p>
+      </div>
 
       {error && <p className="error">{error}</p>}
 
@@ -81,16 +86,47 @@ export default function Estadisticas() {
 
       {datos && (
         <>
-          <section className="stat-grid">
-            <div className="stat-tile">
-              <span className="stat-valor">{datos.total}</span>
-              <span className="stat-etiqueta">Revisiones totales</span>
+          <section className="stats">
+            <div className="stat">
+              <span className="stat-icon" aria-hidden>
+                ▥
+              </span>
+              <div>
+                <strong>{datos.total}</strong>
+                <small>{datos.total === 1 ? "Revisión total" : "Revisiones totales"}</small>
+              </div>
+            </div>
+            <div className="stat">
+              <span className="stat-icon" aria-hidden>
+                ▤
+              </span>
+              <div>
+                <strong>{mesReciente?.cantidad ?? 0}</strong>
+                <small>
+                  {mesReciente
+                    ? `Revisiones en ${formatoMes(mesReciente.nombre)}`
+                    : "Sin revisiones este mes"}
+                </small>
+              </div>
+            </div>
+            <div className="stat">
+              <span className="stat-icon" aria-hidden>
+                ♧
+              </span>
+              <div>
+                <strong>{datos.por_curso.length}</strong>
+                <small>
+                  {datos.por_curso.length === 1 ? "Curso con registros" : "Cursos con registros"}
+                </small>
+              </div>
             </div>
           </section>
 
           <Desglose titulo="Revisiones por mes" items={datos.por_mes} formatoNombre={formatoMes} />
-          <Desglose titulo="Revisiones por motivo" items={datos.por_motivo} />
-          <Desglose titulo="Revisiones por curso" items={datos.por_curso} />
+          <div className="charts">
+            <Desglose titulo="Por motivo" items={datos.por_motivo} />
+            <Desglose titulo="Por curso" items={datos.por_curso} />
+          </div>
         </>
       )}
     </main>

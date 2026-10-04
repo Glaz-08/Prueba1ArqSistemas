@@ -3,10 +3,7 @@ import { Link } from "react-router-dom";
 import { listarRegistros, exportarConsultaPdf } from "../api/registros";
 import { CURSOS_BASICA, CURSOS_MEDIA } from "../data/cursos";
 import type { FiltrosConsulta, RegistroResumen } from "../types";
-
-function formatoHora(valor: string): string {
-  return valor.slice(0, 5);
-}
+import { formatoFecha, formatoHora, iniciales } from "../utils/formato";
 
 const OTRO_CURSO = "__otro__";
 
@@ -58,14 +55,14 @@ export default function Consulta() {
 
   return (
     <main className="layout">
-      <p className="eyebrow">Consulta</p>
-      <h1>Buscar revisiones registradas</h1>
-      <p className="lead">
-        Filtra por estudiante (nombre o RUT), motivo, o un rango de fechas. Deja los campos
-        vacíos y presiona Buscar para ver todos los registros.
-      </p>
+      <div className="intro">
+        <p className="eyebrow">Consulta</p>
+        <h1>Encuentra una revisión</h1>
+        <p>Busca por estudiante, curso, motivo o fecha.</p>
+      </div>
 
-      <form className="card form-grid" onSubmit={handleSubmit}>
+      <form className="card" onSubmit={handleSubmit}>
+        <div className="form-grid">
         <label>
           Estudiante (nombre o RUT)
           <input
@@ -137,7 +134,7 @@ export default function Consulta() {
         </label>
         <div className="acciones">
           <button type="submit" className="button" disabled={buscando}>
-            {buscando ? "Buscando…" : "Buscar"}
+            {buscando ? "Buscando…" : "Buscar revisiones"}
           </button>
           <button type="button" className="button secondary" onClick={limpiar} disabled={buscando}>
             Limpiar
@@ -145,7 +142,7 @@ export default function Consulta() {
           {registros && registros.length > 0 && (
             <button
               type="button"
-              className="button"
+              className="button secondary"
               onClick={async () => {
                 try {
                   await exportarConsultaPdf({ ...filtros, curso: curso() });
@@ -159,16 +156,21 @@ export default function Consulta() {
             </button>
           )}
         </div>
+        </div>
       </form>
 
       {error && <p className="error">{error}</p>}
 
       {buscoAlMenosUnaVez && !error && (
         <section className="card">
-          <h2>Resultados {registros ? `(${registros.length})` : ""}</h2>
+          <div className="card-head">
+            <h2>Resultados de la búsqueda</h2>
+            {registros && <span className="badge blue">{registros.length} {registros.length === 1 ? "registro" : "registros"}</span>}
+          </div>
           {registros && registros.length === 0 ? (
             <p>No se encontraron revisiones con esos filtros.</p>
           ) : (
+            <div className="table-wrap">
             <table className="tabla">
               <thead>
                 <tr>
@@ -183,20 +185,30 @@ export default function Consulta() {
               <tbody>
                 {registros?.map((item) => (
                   <tr key={item.id}>
-                    <td>{item.fecha}</td>
-                    <td>{item.estudiante_nombre}</td>
-                    <td>{item.estudiante_curso}</td>
+                    <td>{formatoFecha(item.fecha)}</td>
+                    <td>
+                      <div className="student">
+                        <span className="initial">{iniciales(item.estudiante_nombre)}</span>
+                        <strong>{item.estudiante_nombre}</strong>
+                      </div>
+                    </td>
+                    <td>
+                      <span className="badge blue">{item.estudiante_curso}</span>
+                    </td>
                     <td>{item.motivo}</td>
                     <td>
                       {formatoHora(item.hora_inicio)} – {formatoHora(item.hora_termino)}
                     </td>
                     <td>
-                      <Link to={`/registros/${item.id}`}>Ver detalle</Link>
+                      <Link className="text-btn" to={`/registros/${item.id}`}>
+                        Ver detalle ↗
+                      </Link>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </section>
       )}

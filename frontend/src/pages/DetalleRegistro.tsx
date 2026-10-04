@@ -2,10 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { descargarDocumentoHtml, obtenerRegistro, urlEvidencia } from "../api/registros";
 import type { Registro } from "../types";
-
-function hora(valor: string): string {
-  return valor.slice(0, 5);
-}
+import { formatoFecha, formatoHora, iniciales } from "../utils/formato";
 
 export default function DetalleRegistro() {
   const { id } = useParams();
@@ -80,8 +77,13 @@ export default function DetalleRegistro() {
 
   return (
     <main className="layout">
-      <p className="eyebrow">Detalle del procedimiento</p>
-      <h1>{registro.estudiante.nombre}</h1>
+      <div className="intro">
+        <p className="eyebrow">Detalle del procedimiento</p>
+        <h1>{registro.estudiante.nombre}</h1>
+        <p>
+          {formatoFecha(registro.fecha)} · {formatoHora(registro.hora_inicio)} – {formatoHora(registro.hora_termino)}
+        </p>
+      </div>
       <div className="acciones no-print">
         <Link className="button" to={`/registros/${id}/copia`}>
           Ver copia
@@ -99,13 +101,20 @@ export default function DetalleRegistro() {
       </div>
 
       <section className="card">
-        <h2>Estudiante</h2>
-        <p>
-          {registro.estudiante.nombre} · RUT {registro.estudiante.rut} · {registro.estudiante.curso}
-        </p>
+        <div className="card-head">
+          <div>
+            <h2>Estudiante</h2>
+            <p>RUT {registro.estudiante.rut}</p>
+          </div>
+          <span className="badge blue">{registro.estudiante.curso}</span>
+        </div>
+        <div className="student">
+          <span className="initial">{iniciales(registro.estudiante.nombre)}</span>
+          <strong>{registro.estudiante.nombre}</strong>
+        </div>
         <h2>Horario</h2>
         <p>
-          {registro.fecha} · {hora(registro.hora_inicio)} – {hora(registro.hora_termino)}
+          {formatoFecha(registro.fecha)} · {formatoHora(registro.hora_inicio)} – {formatoHora(registro.hora_termino)}
         </p>
         <h2>Motivo</h2>
         <p>{registro.motivo}</p>
