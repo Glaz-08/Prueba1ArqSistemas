@@ -308,10 +308,11 @@ select {
   background: #fff;
 }
 
-input:disabled {
+input:disabled,
+input:read-only {
   background: #f1f5f9;
-  color: #64748b;
-  cursor: not-allowed;
+  color: #334155;
+  cursor: default;
 }
 
 .form-grid {
@@ -338,7 +339,7 @@ input:disabled {
 
 @media (min-width: 720px) {
   .fila-dinamica {
-    grid-template-columns: 1fr 1fr auto;
+    grid-template-columns: 1fr 1fr 1fr auto;
   }
 }
 

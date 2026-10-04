@@ -11,6 +11,7 @@ from app.schemas.catalogo import (
     FuncionarioIn,
     FuncionarioOut,
 )
+from app.schemas.registro import validar_rut
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
 
@@ -43,6 +44,24 @@ def listar_estudiantes(
             )
         )
     return [EstudianteOut.model_validate(i) for i in query.order_by(Estudiante.nombre).all()]
+
+
+@router.get("/estudiantes/por-rut", response_model=EstudianteOut)
+def obtener_estudiante_por_rut(
+    rut: str = Query(..., min_length=8, max_length=20),
+    db: Session = Depends(get_db),
+) -> EstudianteOut:
+    try:
+        normalizado = validar_rut(rut)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    item = db.query(Estudiante).filter(Estudiante.rut == normalizado).first()
+    if item is None:
+        raise HTTPException(
+            status_code=404,
+            detail="El estudiante no está registrado. Agrégalo primero en Estudiantes.",
+        )
+    return EstudianteOut.model_validate(item)
 
 
 @router.post("/estudiantes", response_model=EstudianteOut, status_code=201)
@@ -97,6 +116,24 @@ def listar_funcionarios(
             )
         )
     return [FuncionarioOut.model_validate(i) for i in query.order_by(Funcionario.nombre).all()]
+
+
+@router.get("/funcionarios/por-rut", response_model=FuncionarioOut)
+def obtener_funcionario_por_rut(
+    rut: str = Query(..., min_length=8, max_length=20),
+    db: Session = Depends(get_db),
+) -> FuncionarioOut:
+    try:
+        normalizado = validar_rut(rut)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    item = db.query(Funcionario).filter(Funcionario.rut == normalizado).first()
+    if item is None:
+        raise HTTPException(
+            status_code=404,
+            detail="El funcionario no está registrado. Agrégalo primero en Funcionarios.",
+        )
+    return FuncionarioOut.model_validate(item)
 
 
 @router.post("/funcionarios", response_model=FuncionarioOut, status_code=201)

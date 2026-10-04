@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { adjuntarEvidencia, crearRegistro } from "../api/registros";
-import { listarEstudiantes, listarFuncionarios } from "../api/catalogos";
+import {
+  listarEstudiantes,
+  listarFuncionarios,
+  obtenerEstudiantePorRut,
+  obtenerFuncionarioPorRut,
+} from "../api/catalogos";
 import type { ElementoEncontrado, Estudiante, Funcionario } from "../types";
 import { RUT_MAX_LENGTH, validarRut } from "../utils/rut";
 
@@ -14,16 +19,8 @@ const PASOS = [
   "Confirmación",
 ];
 
-const CARGOS = [
-  "Inspector general",
-  "Inspector de patio",
-  "Orientador/a de convivencia",
-  "Docente",
-  "Directivo",
-];
-
 function funcionarioVacio(): Funcionario {
-  return { nombre: "", cargo: CARGOS[0], rut: "" };
+  return { nombre: "", cargo: "", rut: "", encontrado: false };
 }
 
 function elementoVacio(): ElementoEncontrado {
@@ -52,7 +49,10 @@ export default function NuevaRevision() {
   const [estudianteSugerencias, setEstudianteSugerencias] = useState<Estudiante[]>([]);
   const [funcionarioSugerencias, setFuncionarioSugerencias] = useState<Map<number, Funcionario[]>>(() => new Map());
   const [mostrarEstudiantes, setMostrarEstudiantes] = useState(false);
+  const [estudianteEncontrado, setEstudianteEncontrado] = useState(false);
+  const [buscandoEstudiante, setBuscandoEstudiante] = useState(false);
   const [mostrarFuncionarios, setMostrarFuncionarios] = useState<number | null>(null);
+  const [buscandoFuncionario, setBuscandoFuncionario] = useState<number | null>(null);
   const estudianteInputRef = useRef<HTMLInputElement>(null);
   const funcionarioInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -65,79 +65,142 @@ export default function NuevaRevision() {
     [elementos],
   );
 
-  // Autocomplete para estudiante
+  // Busca en el catálogo: RUT completo rellena nombre y curso; si no, sugiere coincidencias.
   useEffect(() => {
     if (estudianteDebounceRef.current) clearTimeout(estudianteDebounceRef.current);
     const rut = estudiante.rut.trim();
-    if (rut.length >= 3) {
-      estudianteDebounceRef.current = setTimeout(async () => {
-        try {
-          const resultados = await listarEstudiantes(rut);
-          setEstudianteSugerencias(resultados.slice(0, 10));
-          setMostrarEstudiantes(resultados.length > 0);
-        } catch {
-          setEstudianteSugerencias([]);
-          setMostrarEstudiantes(false);
-        }
-      }, 300);
-    } else {
+    if (rut.length < 3) {
       setEstudianteSugerencias([]);
       setMostrarEstudiantes(false);
+      setBuscandoEstudiante(false);
+      return;
     }
+    estudianteDebounceRef.current = setTimeout(async () => {
+      if (validarRut(rut)) {
+        setBuscandoEstudiante(true);
+        try {
+          const encontrado = await obtenerEstudiantePorRut(rut);
+          setEstudiante({ rut: encontrado.rut, nombre: encontrado.nombre, curso: encontrado.curso });
+          setEstudianteEncontrado(true);
+          setEstudianteSugerencias([]);
+          setMostrarEstudiantes(false);
+          setError(null);
+        } catch {
+          setEstudiante((actual) => ({ ...actual, nombre: "", curso: "" }));
+          setEstudianteEncontrado(false);
+          setError("El estudiante no está registrado. Agrégalo primero en Estudiantes.");
+        } finally {
+          setBuscandoEstudiante(false);
+        }
+        return;
+      }
+      try {
+        const resultados = await listarEstudiantes(rut);
+        setEstudianteSugerencias(resultados.slice(0, 10));
+        setMostrarEstudiantes(resultados.length > 0);
+      } catch {
+        setEstudianteSugerencias([]);
+        setMostrarEstudiantes(false);
+      }
+    }, 300);
     return () => {
       if (estudianteDebounceRef.current) clearTimeout(estudianteDebounceRef.current);
     };
   }, [estudiante.rut]);
 
-  // Autocomplete para funcionario
   function buscarFuncionarios(indice: number, rut: string) {
     if (funcionarioDebounceRefs.current.has(indice)) {
       clearTimeout(funcionarioDebounceRefs.current.get(indice)!);
     }
-    if (rut.trim().length >= 3) {
-      const timeout = setTimeout(async () => {
-        try {
-          const resultados = await listarFuncionarios(rut);
-          setFuncionarioSugerencias(prev => {
-            const nuevo = new Map(prev);
-            nuevo.set(indice, resultados.slice(0, 10));
-            return nuevo;
-          });
-          setMostrarFuncionarios(indice);
-        } catch {
-          setFuncionarioSugerencias(prev => {
-            const nuevo = new Map(prev);
-            nuevo.set(indice, []);
-            return nuevo;
-          });
-        }
-      }, 300);
-      funcionarioDebounceRefs.current.set(indice, timeout);
-    } else {
-      setFuncionarioSugerencias(prev => {
+    const limpio = rut.trim();
+    if (limpio.length < 3) {
+      setFuncionarioSugerencias((prev) => {
         const nuevo = new Map(prev);
         nuevo.set(indice, []);
         return nuevo;
       });
+      setBuscandoFuncionario(null);
+      return;
     }
+    const timeout = setTimeout(async () => {
+      if (validarRut(limpio)) {
+        setBuscandoFuncionario(indice);
+        try {
+          const encontrado = await obtenerFuncionarioPorRut(limpio);
+          setFuncionarios((actuales) => {
+            const copia = [...actuales];
+            copia[indice] = {
+              ...copia[indice],
+              rut: encontrado.rut,
+              nombre: encontrado.nombre,
+              cargo: encontrado.cargo,
+              encontrado: true,
+            };
+            return copia;
+          });
+          setFuncionarioSugerencias((prev) => {
+            const nuevo = new Map(prev);
+            nuevo.set(indice, []);
+            return nuevo;
+          });
+          setMostrarFuncionarios(null);
+          setError(null);
+        } catch {
+          setFuncionarios((actuales) => {
+            const copia = [...actuales];
+            copia[indice] = { ...copia[indice], nombre: "", cargo: "", encontrado: false };
+            return copia;
+          });
+          setError("El funcionario no está registrado. Agrégalo primero en Funcionarios.");
+        } finally {
+          setBuscandoFuncionario(null);
+        }
+        return;
+      }
+      try {
+        const resultados = await listarFuncionarios(limpio);
+        setFuncionarioSugerencias((prev) => {
+          const nuevo = new Map(prev);
+          nuevo.set(indice, resultados.slice(0, 10));
+          return nuevo;
+        });
+        setMostrarFuncionarios(indice);
+      } catch {
+        setFuncionarioSugerencias((prev) => {
+          const nuevo = new Map(prev);
+          nuevo.set(indice, []);
+          return nuevo;
+        });
+      }
+    }, 300);
+    funcionarioDebounceRefs.current.set(indice, timeout);
   }
 
   function seleccionarEstudiante(est: Estudiante) {
     setEstudiante({ rut: est.rut, nombre: est.nombre, curso: est.curso });
+    setEstudianteEncontrado(true);
     setEstudianteSugerencias([]);
     setMostrarEstudiantes(false);
+    setError(null);
   }
 
   function seleccionarFuncionario(indice: number, func: Funcionario) {
     const copia = [...funcionarios];
-    copia[indice] = { ...copia[indice], nombre: func.nombre, cargo: func.cargo };
+    copia[indice] = {
+      ...copia[indice],
+      rut: func.rut,
+      nombre: func.nombre,
+      cargo: func.cargo,
+      encontrado: true,
+    };
     setFuncionarios(copia);
-    setFuncionarioSugerencias(prev => {
+    setFuncionarioSugerencias((prev) => {
       const nuevo = new Map(prev);
       nuevo.set(indice, []);
       return nuevo;
     });
     setMostrarFuncionarios(null);
+    setError(null);
   }
 
   // Cerrar dropdowns al hacer click fuera
@@ -163,17 +226,23 @@ export default function NuevaRevision() {
 
   function validarPaso(): string | null {
     if (paso === 0) {
-      if (!estudiante.rut.trim() || !estudiante.nombre.trim() || !estudiante.curso.trim()) {
-        return "Completa RUT, nombre y curso del estudiante.";
+      if (!estudiante.rut.trim()) {
+        return "Ingresa el RUT del estudiante.";
       }
       if (!validarRut(estudiante.rut)) {
         return "El RUT ingresado no es válido.";
       }
+      if (!estudianteEncontrado || !estudiante.nombre.trim() || !estudiante.curso.trim()) {
+        return "El estudiante debe estar registrado. Agrégalo primero en Estudiantes.";
+      }
     }
     if (paso === 1) {
-      const validos = funcionarios.filter((item) => item.nombre.trim() && item.cargo.trim());
+      const validos = funcionarios.filter((item) => item.encontrado && item.nombre.trim() && item.cargo.trim());
       if (validos.length === 0) {
-        return "Debe haber al menos un funcionario presente.";
+        return "Debe haber al menos un funcionario registrado. Agrégalo primero en Funcionarios.";
+      }
+      if (funcionarios.some((item) => (item.rut || "").trim() && !item.encontrado)) {
+        return "Cada RUT debe coincidir con un funcionario del catálogo.";
       }
     }
     if (paso === 2 && motivo.trim().length < 5) {
@@ -211,9 +280,13 @@ export default function NuevaRevision() {
     try {
       const creado = await crearRegistro({
         estudiante,
-        funcionarios_presentes: funcionarios.filter(
-          (item) => item.nombre.trim() && item.cargo.trim(),
-        ),
+        funcionarios_presentes: funcionarios
+          .filter((item) => item.encontrado && item.nombre.trim() && item.cargo.trim())
+          .map((item) => ({
+            rut: item.rut || "",
+            nombre: item.nombre,
+            cargo: item.cargo,
+          })),
         motivo,
         elementos_encontrados: resumenElementos,
         fecha,
@@ -246,13 +319,21 @@ export default function NuevaRevision() {
       {paso === 0 && (
         <section className="card form-grid">
           <h2>Estudiante involucrado</h2>
+          <p className="ayuda" style={{ gridColumn: "1 / -1" }}>
+            Ingresa el RUT. Nombre y curso se completan si el estudiante ya está en el{" "}
+            <Link to="/catalogos/estudiantes">catálogo de estudiantes</Link>.
+          </p>
           <label>
             RUT
             <div style={{ position: "relative" }}>
               <input
                 ref={estudianteInputRef}
                 value={estudiante.rut}
-                onChange={(e) => setEstudiante({ ...estudiante, rut: e.target.value })}
+                onChange={(e) => {
+                  setEstudiante({ rut: e.target.value, nombre: "", curso: "" });
+                  setEstudianteEncontrado(false);
+                  setError(null);
+                }}
                 onFocus={() => estudiante.rut.trim().length >= 3 && setMostrarEstudiantes(true)}
                 placeholder="12.345.678-5"
                 maxLength={RUT_MAX_LENGTH}
@@ -278,17 +359,16 @@ export default function NuevaRevision() {
             Nombre completo
             <input
               value={estudiante.nombre}
-              onChange={(e) => setEstudiante({ ...estudiante, nombre: e.target.value })}
-              maxLength={200}
+              readOnly
+              placeholder={buscandoEstudiante ? "Buscando…" : "Se completa con el RUT"}
             />
           </label>
           <label>
             Curso
             <input
               value={estudiante.curso}
-              onChange={(e) => setEstudiante({ ...estudiante, curso: e.target.value })}
-              placeholder="2° medio A"
-              maxLength={50}
+              readOnly
+              placeholder={buscandoEstudiante ? "Buscando…" : "Se completa con el RUT"}
             />
           </label>
         </section>
@@ -297,6 +377,10 @@ export default function NuevaRevision() {
       {paso === 1 && (
         <section className="card">
           <h2>Funcionarios presentes</h2>
+          <p className="ayuda">
+            Ingresa el RUT. Nombre y cargo se completan si el funcionario ya está en el{" "}
+            <Link to="/catalogos/funcionarios">catálogo de funcionarios</Link>.
+          </p>
           {funcionarios.map((item, indice) => (
             <div className="fila-dinamica" key={indice}>
               <label>
@@ -308,8 +392,9 @@ export default function NuevaRevision() {
                     onChange={(e) => {
                       const rut = e.target.value;
                       const copia = [...funcionarios];
-                      copia[indice] = { ...item, rut };
+                      copia[indice] = { rut, nombre: "", cargo: "", encontrado: false };
                       setFuncionarios(copia);
+                      setError(null);
                       buscarFuncionarios(indice, rut);
                     }}
                     onFocus={() => (item.rut || "").trim().length >= 3 && setMostrarFuncionarios(indice)}
@@ -337,25 +422,16 @@ export default function NuevaRevision() {
                 Nombre
                 <input
                   value={item.nombre}
-                  onChange={(e) => {
-                    const copia = [...funcionarios];
-                    copia[indice] = { ...item, nombre: e.target.value };
-                    setFuncionarios(copia);
-                  }}
-                  maxLength={200}
+                  readOnly
+                  placeholder={buscandoFuncionario === indice ? "Buscando…" : "Se completa con el RUT"}
                 />
               </label>
               <label>
                 Cargo / rol en la revisión
                 <input
-                  list="cargos"
                   value={item.cargo}
-                  onChange={(e) => {
-                    const copia = [...funcionarios];
-                    copia[indice] = { ...item, cargo: e.target.value };
-                    setFuncionarios(copia);
-                  }}
-                  maxLength={120}
+                  readOnly
+                  placeholder={buscandoFuncionario === indice ? "Buscando…" : "Se completa con el RUT"}
                 />
               </label>
               {funcionarios.length > 1 && (
@@ -369,11 +445,6 @@ export default function NuevaRevision() {
               )}
             </div>
           ))}
-          <datalist id="cargos">
-            {CARGOS.map((cargo) => (
-              <option key={cargo} value={cargo} />
-            ))}
-          </datalist>
           <button
             type="button"
             className="button secondary"

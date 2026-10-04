@@ -10,6 +10,7 @@ export type Funcionario = {
   rut?: string;
   nombre: string;
   cargo: string;
+  encontrado?: boolean;
 };
 
 export type ElementoEncontrado = {

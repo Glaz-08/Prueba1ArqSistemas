@@ -29,6 +29,12 @@ async function llamada(url: string, init?: RequestInit): Promise<Response> {
 }
 
 // Estudiantes
+export async function obtenerEstudiantePorRut(rut: string): Promise<EstudianteCatalogo> {
+  const response = await llamada(`/api/estudiantes/por-rut?rut=${encodeURIComponent(rut)}`);
+  if (!response.ok) throw new Error(await parseError(response));
+  return response.json();
+}
+
 export async function listarEstudiantes(q?: string): Promise<EstudianteCatalogo[]> {
   const query = q ? `?q=${encodeURIComponent(q)}` : "";
   const response = await llamada(`/api/estudiantes${query}`);
@@ -65,6 +71,12 @@ export async function eliminarEstudiante(id: string): Promise<void> {
 }
 
 // Funcionarios
+export async function obtenerFuncionarioPorRut(rut: string): Promise<FuncionarioCatalogo> {
+  const response = await llamada(`/api/funcionarios/por-rut?rut=${encodeURIComponent(rut)}`);
+  if (!response.ok) throw new Error(await parseError(response));
+  return response.json();
+}
+
 export async function listarFuncionarios(q?: string): Promise<FuncionarioCatalogo[]> {
   const query = q ? `?q=${encodeURIComponent(q)}` : "";
   const response = await llamada(`/api/funcionarios${query}`);

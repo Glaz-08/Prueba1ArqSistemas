@@ -76,7 +76,12 @@ def registro_aleatorio(rng: random.Random, dias_atras: int) -> dict:
     return {
         "estudiante": {"rut": rut, "nombre": nombre, "curso": curso},
         "funcionarios_presentes": [
-            {"nombre": nombre, "cargo": cargo} for _, nombre, cargo in presentes
+            {
+                "rut": f"{cuerpo}-{calcular_dv(cuerpo)}",
+                "nombre": nombre,
+                "cargo": cargo,
+            }
+            for cuerpo, nombre, cargo in presentes
         ],
         "motivo": rng.choice(MOTIVOS),
         "elementos_encontrados": rng.choice(ELEMENTOS),

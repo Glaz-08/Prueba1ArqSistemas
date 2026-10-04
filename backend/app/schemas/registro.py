@@ -48,8 +48,14 @@ class EstudianteIn(BaseModel):
 
 
 class FuncionarioIn(BaseModel):
+    rut: str = Field(min_length=8, max_length=20)
     nombre: str = Field(min_length=3, max_length=200)
     cargo: str = Field(min_length=2, max_length=120)
+
+    @field_validator("rut")
+    @classmethod
+    def rut_chileno(cls, value: str) -> str:
+        return validar_rut(value)
 
     @field_validator("nombre", "cargo")
     @classmethod

@@ -10,6 +10,8 @@ from starlette.responses import FileResponse
 
 from app.core.config import settings
 from app.core.database import get_db
+from app.models.catalogo import Estudiante as EstudianteCatalogo
+from app.models.catalogo import Funcionario as FuncionarioCatalogo
 from app.models.registro import (
     ElementoEncontrado,
     Evidencia,
@@ -17,6 +19,7 @@ from app.models.registro import (
     RegistroRevision,
 )
 from app.schemas.registro import (
+    FuncionarioIn,
     RegistroCreate,
     RegistroListado,
     RegistroOut,
@@ -54,6 +57,28 @@ def _cargar_registro(db: Session, registro_id: str) -> RegistroRevision:
 def _patron_busqueda(valor: str) -> str:
     escapado = valor.translate({ord("\\"): "\\\\", ord("%"): "\\%", ord("_"): "\\_"})
     return f"%{escapado}%"
+
+
+def _funcionarios_desde_catalogo(
+    db: Session, presentes: list[FuncionarioIn]
+) -> list[FuncionarioPresente]:
+    resultado: list[FuncionarioPresente] = []
+    for item in presentes:
+        catalogo = (
+            db.query(FuncionarioCatalogo)
+            .filter(FuncionarioCatalogo.rut == item.rut)
+            .first()
+        )
+        if catalogo is None:
+            raise HTTPException(
+                status_code=404,
+                detail=(
+                    f"El funcionario {item.rut} no está registrado. "
+                    "Agrégalo primero en Funcionarios."
+                ),
+            )
+        resultado.append(FuncionarioPresente(nombre=catalogo.nombre, cargo=catalogo.cargo))
+    return resultado
 
 
 def _to_out(registro: RegistroRevision) -> RegistroOut:
@@ -131,18 +156,25 @@ def listar_registros(
 
 @router.post("", response_model=RegistroOut, status_code=201)
 def crear_registro(payload: RegistroCreate, db: Session = Depends(get_db)) -> RegistroOut:
+    catalogo = (
+        db.query(EstudianteCatalogo)
+        .filter(EstudianteCatalogo.rut == payload.estudiante.rut)
+        .first()
+    )
+    if catalogo is None:
+        raise HTTPException(
+            status_code=404,
+            detail="El estudiante no está registrado. Agrégalo primero en Estudiantes.",
+        )
     registro = RegistroRevision(
-        estudiante_rut=payload.estudiante.rut,
-        estudiante_nombre=payload.estudiante.nombre,
-        estudiante_curso=payload.estudiante.curso,
+        estudiante_rut=catalogo.rut,
+        estudiante_nombre=catalogo.nombre,
+        estudiante_curso=catalogo.curso,
         motivo=payload.motivo,
         fecha=payload.fecha,
         hora_inicio=payload.hora_inicio,
         hora_termino=payload.hora_termino,
-        funcionarios=[
-            FuncionarioPresente(nombre=item.nombre, cargo=item.cargo)
-            for item in payload.funcionarios_presentes
-        ],
+        funcionarios=_funcionarios_desde_catalogo(db, payload.funcionarios_presentes),
         elementos=[
             ElementoEncontrado(
                 cantidad=item.cantidad,

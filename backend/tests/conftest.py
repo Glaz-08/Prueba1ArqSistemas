@@ -109,8 +109,8 @@ def payload_valido(**overrides: object) -> dict:
             "curso": "2° medio A",
         },
         "funcionarios_presentes": [
-            {"nombre": "Pedro Núñez", "cargo": "Inspector general"},
-            {"nombre": "Ana Reyes", "cargo": "Orientadora"},
+            {"rut": "22.222.222-2", "nombre": "Pedro Núñez", "cargo": "Inspector general"},
+            {"rut": "12.345.678-5", "nombre": "Ana Reyes", "cargo": "Orientadora"},
         ],
         "motivo": "Denuncia de posible porte de objeto prohibido",
         "elementos_encontrados": [
@@ -128,7 +128,21 @@ def payload_valido(**overrides: object) -> dict:
     return data
 
 
+def asegurar_estudiante(client: TestClient, estudiante: dict) -> None:
+    respuesta = client.post("/api/estudiantes", json=estudiante)
+    assert respuesta.status_code in (201, 409), respuesta.text
+
+
+def asegurar_funcionario(client: TestClient, funcionario: dict) -> None:
+    respuesta = client.post("/api/funcionarios", json=funcionario)
+    assert respuesta.status_code in (201, 409), respuesta.text
+
+
 def crear_registro(client: TestClient, **overrides: object) -> dict:
-    response = client.post("/api/registros", json=payload_valido(**overrides))
+    payload = payload_valido(**overrides)
+    asegurar_estudiante(client, payload["estudiante"])
+    for presente in payload["funcionarios_presentes"]:
+        asegurar_funcionario(client, presente)
+    response = client.post("/api/registros", json=payload)
     assert response.status_code == 201, response.text
     return response.json()

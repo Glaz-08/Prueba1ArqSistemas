@@ -14,6 +14,18 @@ def test_crear_y_listar_estudiante(client: TestClient) -> None:
     assert len(listado.json()) == 1
 
 
+def test_obtener_estudiante_por_rut(client: TestClient) -> None:
+    client.post("/api/estudiantes", json=ESTUDIANTE)
+
+    encontrado = client.get("/api/estudiantes/por-rut", params={"rut": "11111111-1"})
+    assert encontrado.status_code == 200
+    assert encontrado.json()["nombre"] == "Camila Soto"
+    assert encontrado.json()["curso"] == "2° medio A"
+
+    ausente = client.get("/api/estudiantes/por-rut", params={"rut": "13.333.333-9"})
+    assert ausente.status_code == 404
+
+
 def test_buscar_estudiante(client: TestClient) -> None:
     client.post("/api/estudiantes", json=ESTUDIANTE)
     client.post(
@@ -59,6 +71,17 @@ def test_rut_invalido_rechazado(client: TestClient) -> None:
 def test_catalogos_requieren_sesion(client_sin_auth: TestClient) -> None:
     assert client_sin_auth.get("/api/estudiantes").status_code == 401
     assert client_sin_auth.get("/api/funcionarios").status_code == 401
+
+
+def test_obtener_funcionario_por_rut(client: TestClient) -> None:
+    client.post("/api/funcionarios", json=FUNCIONARIO)
+
+    encontrado = client.get("/api/funcionarios/por-rut", params={"rut": "22222222-2"})
+    assert encontrado.status_code == 200
+    assert encontrado.json()["nombre"] == "Pedro Núñez"
+
+    ausente = client.get("/api/funcionarios/por-rut", params={"rut": "12.345.678-5"})
+    assert ausente.status_code == 404
 
 
 def test_crear_editar_eliminar_funcionario(client: TestClient) -> None:

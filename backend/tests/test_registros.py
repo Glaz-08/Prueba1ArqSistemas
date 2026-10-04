@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 
-from conftest import crear_registro, payload_valido
+from conftest import asegurar_estudiante, crear_registro, payload_valido
 
 PNG_1X1 = (
     b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
@@ -58,6 +58,20 @@ def test_crear_hora_termino_invalida(client: TestClient) -> None:
         json=payload_valido(hora_inicio="11:00", hora_termino="10:00"),
     )
     assert response.status_code == 422
+
+
+def test_crear_sin_funcionario_en_catalogo(client: TestClient) -> None:
+    payload = payload_valido()
+    asegurar_estudiante(client, payload["estudiante"])
+    response = client.post("/api/registros", json=payload)
+    assert response.status_code == 404
+    assert "funcionario" in response.json()["detail"]
+
+
+def test_crear_sin_estudiante_en_catalogo(client: TestClient) -> None:
+    response = client.post("/api/registros", json=payload_valido())
+    assert response.status_code == 404
+    assert "no está registrado" in response.json()["detail"]
 
 
 def test_crear_rut_invalido(client: TestClient) -> None:

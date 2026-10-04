@@ -59,11 +59,15 @@ def test_estadisticas_total_y_agrupaciones(client: TestClient) -> None:
 
 
 def test_estadisticas_orden_descendente_por_cantidad(client: TestClient) -> None:
-    for curso in ("1° básico A", "1° básico A", "1° básico A", "2° básico B", "2° básico B"):
-        crear_registro(
-            client,
-            estudiante={"rut": "11.111.111-1", "nombre": "Camila Soto", "curso": curso},
-        )
+    estudiantes = [
+        {"rut": "11.111.111-1", "nombre": "Ana Uno", "curso": "1° básico A"},
+        {"rut": "22.222.222-2", "nombre": "Ana Dos", "curso": "1° básico A"},
+        {"rut": "33.333.333-3", "nombre": "Ana Tres", "curso": "1° básico A"},
+        {"rut": "44.444.444-4", "nombre": "Bruno Uno", "curso": "2° básico B"},
+        {"rut": "55.555.555-5", "nombre": "Bruno Dos", "curso": "2° básico B"},
+    ]
+    for estudiante in estudiantes:
+        crear_registro(client, estudiante=estudiante)
 
     response = client.get("/api/estadisticas")
 
